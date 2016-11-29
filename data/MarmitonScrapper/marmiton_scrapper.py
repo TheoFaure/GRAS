@@ -3,16 +3,18 @@ import requests
 import re
 import json
 
-recipes_nb = 3  # 66970
-recipes_per_iter = 3;
-links_file = "links_to_marmiton_recipes.json"
-json_file = "marmiton_recipes.json"
+recipe_start_index = 62601
+recipes_nb = 4000# 66970
+recipes_per_iter = 20;
+links_file = "links_to_marmiton_recipes40.json"
+json_file = "marmiton_recipes40.json"
 
 def get_recipes():
+    print("Beginning the scrapping of recipes from " + str(recipe_start_index) + " and of " + str(recipes_nb) + " recipes.")
     recipes = [] # Url, dishType, isVegetarian
-    for i in range(1, recipes_nb, recipes_per_iter):
+    for i in range(recipe_start_index, recipe_start_index + recipes_nb, recipes_per_iter):
         json_str = requests.get('http://m.marmiton.org/webservices/json.svc/GetRecipeSearch?SiteId' +
-                            '=1&SearchType=0&ItemsPerPage=10&StartIndex=' + str(i))
+                            '=1&SearchType=0&ItemsPerPage=' + str(recipes_per_iter) + '&StartIndex=' + str(i))
         json_obj = json_str.json()
         for j in range(recipes_per_iter):
             new = []
@@ -20,11 +22,15 @@ def get_recipes():
             new.append(json_obj['data']['items'][j]['dishType']['token'])
             new.append(json_obj['data']['items'][j]['isVegetarian'])
             recipes.append(new)
+            if len(recipes)%50 == 0:
+                print(str(len(recipes)) + " links scrapped...")
 
+    print("All links scrapped. Write links save file...")
     print(len(recipes))
     with open(links_file, 'w') as f:
         json.dump(recipes, f, ensure_ascii=False)
     f.closed
+    print("File saved.")
 
     return recipes
 
@@ -59,10 +65,11 @@ def create_json(title, ingredients, instructions, link, dishType, veggie):
 
 if __name__ == "__main__":
     recipes_infos = get_recipes()
-    # recipes = []
-    # recipes.append(["http://www.marmiton.org/recettes/recette_delice-au-saumon-fume-roquette-et-asperges-vertes_325759.aspx", "PlatPrincipal", "True"])
+    # with open(links_file, 'r') as f:
+    #     recipes_infos = json.load(f)
+    # f.closed
     recipes = []
-
+    print("Beginning the scrapping of the recipes.")
     for link, dishType, veggie in recipes_infos:
         page = requests.get(link)
 
@@ -81,10 +88,13 @@ if __name__ == "__main__":
 
         recipe = create_json(title, ingredients, instructions, link, dishType, veggie)
         recipes.append(recipe)
-        print(recipe)
+        if len(recipes) % 20 == 0:
+            print(str(len(recipes)) + " recipes scrapped...")
 
     json_recipes = json.dumps(recipes)
+    print("All recipes scrapped. Writing recipes save file...")
 
     with open(json_file, 'w') as f:
         json.dump(recipes, f, ensure_ascii=False)
     f.closed
+    print("Terminated. :)")
