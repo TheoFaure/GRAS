@@ -2,10 +2,10 @@ import json
 import nltk
 import re
 from nltk.stem import SnowballStemmer
-
+import unicodedata
 
 dict_ingred = {}
-
+dishTypes = []
 
 stop_words_ingredients = ["", "de", "d", "l", "le", "la", "au", "a", "à", "des", "les", "grosse", "grosses", "bien", "cuillères"]
 
@@ -15,6 +15,14 @@ unit_words = re.compile("^(g|kg|mg|ml|l|cl|dl|paquet|verre)$")
 
 nb_files = 2
 json_file = "data/preprocessed_recipes.json"
+
+
+def remove_diacritic(input):
+    '''
+    Accept a unicode string, and return a normal string (bytes in Python 3)
+    without any diacritical marks.
+    '''
+    return unicodedata.normalize('NFKD', input).encode('ASCII', 'ignore')
 
 
 def load_recipes():
@@ -57,11 +65,95 @@ def get_qty_name_unit(ingredient):
             unit = w
         else:
             w_filtered = remove_stop_words(w)
+            w_filtered = w_filtered.replace('œ', 'oe').replace('-', ' ')
             name = " ".join([name, w_filtered])
 
     name_std = get_standard_ingredient(name)
-    print("In: %s, Out: %i, %s, %s"%(ingredient, qty, unit, name_std))
+    # print("In: %s, Out: %i, %s, %s"%(ingredient, qty, unit, name_std))
     return qty, name_std, unit
+
+
+def stem_ingred_list():
+    stemmer = SnowballStemmer("french", ignore_stopwords=True)
+    with open("data/marmiton_ingredients_list.txt", 'r') as f:
+        for line in f:
+            l_key = line[:-1]
+            l = l_key.lower()
+            l_split = l.split()
+            # next line we create a string with the stemmed words, without stop words of the list.
+            dict_ingred[l_key] = " ".join([remove_diacritic(stemmer.stem(remove_stop_words(w))).decode() for w in l_split])
+    f.closed
+
+
+def get_standard_ingredient(ingredient):
+    ingredient = remove_diacritic(ingredient).decode()
+    ing_array = ingredient.split()
+    stemmer = SnowballStemmer("french", ignore_stopwords=True)
+    ingr_stem = " ".join([stemmer.stem(i) for i in ing_array])
+    standard_ing = find_closest_ing(ingr_stem, ingredient)
+    return standard_ing
+
+
+def find_closest_ing(ingr_stem, ingr_norm):
+    for i in sorted(dict_ingred, key=lambda j : len(dict_ingred[j]), reverse=True):
+        if ingr_norm == dict_ingred[i]:
+            return i
+
+    for i in sorted(dict_ingred, key=lambda j : len(dict_ingred[j]), reverse=True):
+        if ingr_stem == dict_ingred[i]:
+            return i
+
+    dist_min = 10000
+    i_min = ""
+
+    for i in sorted(dict_ingred, key=lambda j : len(dict_ingred[j]), reverse=True):
+        dist = distance_ingr(ingr_stem, dict_ingred[i])
+        if dist == 0:
+            return i
+        elif dist < dist_min:
+            i_min = i
+
+    print(ingr_stem, dict_ingred[i_min], ingr_norm.replace('  ', ' '))
+    return ingr_norm.replace('  ', ' ')
+
+
+def distance_ingr(my_ing, std_ing):
+    if std_ing in my_ing:
+        return 0
+    else:
+        return 1
+
+
+if __name__ == "__main__":
+    recipes = load_recipes()
+    stem_ingred_list()
+    recipes_modified = []
+    for r in recipes:
+        recipe_mod = {}
+        recipe_mod['link'] = r['link']
+        recipe_mod['dishType'] = r['dishType']
+        if r['dishType'] not in dishTypes:
+            dishTypes.append(r['dishType'])
+        recipe_mod['isVegetarian'] = r['isVegetarian']
+        recipe_mod['title'] = r['title'][0].lower()
+
+        recipe_mod['ingredients'] = []
+        for i in r['ingredients']:
+            ingredient = {}
+            ingredient['qty'], ingredient['name'], ingredient['unit'] = get_qty_name_unit(i)
+            recipe_mod['ingredients'].append(ingredient)
+
+        recipe_mod['instructions'] = []
+        for s in r['instructions']:
+            recipe_mod['instructions'].append(s.lower())
+
+        recipes_modified.append(recipe_mod)
+
+    with open(json_file, 'w') as f:
+        json.dump(recipes_modified, f, ensure_ascii=False)
+    f.closed
+
+    print(dishTypes)
 
 
 # def get_qty_name_unit(ingredient):
@@ -104,81 +196,3 @@ def get_qty_name_unit(ingredient):
 #             " ".join([name, w_filtered])
 #
 #     return qty, name, unit
-
-
-def stem_ingred_list():
-    stemmer = SnowballStemmer("french", ignore_stopwords=True)
-    with open("data/marmiton_ingredients_list.txt", 'r') as f:
-        for line in f:
-            l_key = line[:-1]
-            l = l_key.lower()
-            l_split = l.split()
-            # next line we create a string with the stemmed words, without stop words of the list.
-            dict_ingred[l_key] = " ".join([stemmer.stem(remove_stop_words(w)) for w in l_split])
-    f.closed
-
-
-def get_standard_ingredient(ingredient):
-    ing_array = ingredient.split()
-    stemmer = SnowballStemmer("french", ignore_stopwords=True)
-    ingr_stem = " ".join([stemmer.stem(i) for i in ing_array])
-    standard_ing = find_closest_ing(ingr_stem, ingredient)
-    return standard_ing
-
-
-def find_closest_ing(ingr_stem, ingr_norm):
-    for i in sorted(dict_ingred, key=lambda j : len(dict_ingred[j]), reverse=True):
-        if ingr_norm == dict_ingred[i]:
-            return i
-
-    for i in sorted(dict_ingred, key=lambda j : len(dict_ingred[j]), reverse=True):
-        if ingr_stem == dict_ingred[i]:
-            return i
-
-    dist_min = 10000
-    i_min = ""
-
-    for i in sorted(dict_ingred, key=lambda j : len(dict_ingred[j]), reverse=True):
-        dist = distance_ingr(ingr_stem, dict_ingred[i])
-        if dist == 0:
-            return i
-        elif dist < dist_min:
-            i_min = i
-
-    print(ingr_stem, dict_ingred[i_min])
-    return i_min
-
-
-def distance_ingr(my_ing, std_ing):
-    if std_ing in my_ing:
-        return 0
-    else:
-        return 1
-
-
-if __name__ == "__main__":
-    recipes = load_recipes()
-    stem_ingred_list()
-    recipes_modified = []
-    for r in recipes:
-        recipe_mod = {}
-        recipe_mod['link'] = r['link']
-        recipe_mod['dishType'] = r['dishType']
-        recipe_mod['isVegetarian'] = r['isVegetarian']
-        recipe_mod['title'] = r['title'][0].lower()
-
-        recipe_mod['ingredients'] = []
-        for i in r['ingredients']:
-            ingredient = {}
-            ingredient['qty'], ingredient['name'], ingredient['unit'] = get_qty_name_unit(i)
-            recipe_mod['ingredients'].append(ingredient)
-
-        recipe_mod['instructions'] = []
-        for s in r['instructions']:
-            recipe_mod['instructions'].append(s)
-
-        recipes_modified.append(recipe_mod)
-
-    with open(json_file, 'w') as f:
-        json.dump(recipes_modified, f, ensure_ascii=False)
-    f.closed
