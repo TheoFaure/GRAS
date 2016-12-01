@@ -13,7 +13,7 @@ unit_words = re.compile("^(g|kg|mg|ml|l|cl|dl|paquet|verre)$")
 # unit_words = "( g | kg | mg | ml | l | cl | dl | cuillère à café | cuillère | cuillère à soupe " \
 #              "| noix de (?!cajou|coco|macadamia|saint-jacques|pécan|grenoble)| noisette de | paquet | verre )"
 
-nb_files = 2
+nb_files = 10
 json_file = "data/preprocessed_recipes.json"
 
 
@@ -114,7 +114,7 @@ def find_closest_ing(ingr_stem, ingr_norm):
             i_min = i
 
     print(ingr_stem, dict_ingred[i_min], ingr_norm.replace('  ', ' '))
-    return ingr_norm.replace('  ', ' ')
+    return "" #ingr_norm.replace('  ', ' ')
 
 
 def distance_ingr(my_ing, std_ing):

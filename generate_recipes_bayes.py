@@ -50,22 +50,25 @@ def load_ing():
 
 def mean_nb_ing(ing_list, C):
     nb_ing = 0
-    nb_of_class = 0
+    nb_rec = 0
     global recipes
     global nb_recipes
     for recipe in recipes:
         if recipe['dishType'] in C:
-            nb_of_class += 1
             if not False in [(Ik in [i['name'] for i in recipe['ingredients']]) for Ik in ing_list]:
-                nb_ing += len([i for i in recipe['ingredients']])
-    nb_ing /= nb_of_class
+                nb_ing += len(recipe['ingredients'])
+                nb_rec += 1
+
+    nb_ing /= nb_rec
     return nb_ing
 
 
 def generate_ing_list(list_ing, list_classes):
     nb_out_ing = mean_nb_ing(list_ing, list_classes)
+    if nb_out_ing > 12:
+        nb_out_ing = 12
     print("Recipe with %i ingredients"%nb_out_ing)
-    for i in range(int(nb_out_ing+3)):
+    for i in range(int(nb_out_ing)):
         max_prob = 0
         max_prob_ing = ""
         for new_ing in ingredients:

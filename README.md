@@ -11,3 +11,4 @@ REFs:
 https://openai.com/blog/generative-models/
 https://github.com/fagonzalezo/dl_tutorial_upv/blob/gh-pages/LSTMs_Language_Modeling.ipynb
 https://arxiv.org/abs/1406.2661
+http://cs229.stanford.edu/notes/cs229-notes2.pdf
