@@ -14,6 +14,7 @@ This is a project done in 1 week approximately, so I didn't have the time to pus
 - The method used for recipe generation is using a probabilistic model and is quite long to execute. We should try other techniques, like the Adversarial networks described in a reference below.
 - The method used for title generation could be improved.
 - Adding the instructions generation (which requires quite a lot of work to be coherent).
+- Make the code cleaner, more readable and more integrated. For now, each part is independent, and not all of them are used. Some of them are just technique tests. It would be good to refactor everything to integrate it in a complete pipeline.
 - And maybe many more...
 
 
